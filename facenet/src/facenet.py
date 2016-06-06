@@ -142,9 +142,10 @@ def _batch_norm(x, n_out, phase_train, name, affine=True):
       ema_apply_op = ema.apply([batch_mean, batch_var])
       with tf.control_dependencies([ema_apply_op]):
         return tf.identity(batch_mean), tf.identity(batch_var)
-    mean, var = control_flow_ops.cond(phase_train,
-                                      mean_var_with_update,
-                                      lambda: (ema.average(batch_mean), ema.average(batch_var)))
+    # mean, var = control_flow_ops.cond(phase_train,
+    #                                   mean_var_with_update,
+    #                                   lambda: (ema.average(batch_mean), ema.average(batch_var)))
+    mean, var = batch_mean, batch_var
     normed = tf.nn.batch_norm_with_global_normalization(x, mean, var,
                                                         beta, gamma, 1e-3, affine, name=name)
     parameters += [beta, gamma]
