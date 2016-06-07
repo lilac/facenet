@@ -25,3 +25,15 @@ The accuracy on LFW for the model "model-20160306.ckpt-500000" is 0.916±0.010. 
 
 Under development: 
 This project is currently very much under development (i will try to keep the issue tracker up-to-date with what is in the pipe).
+
+# Generate graph definition for inference
+
+```bash
+python src/graph_def.py --model_dir model/20160306-500000 --output_dir /tmp --output_name graph_def_batch_1.pb --batch_size 1
+```
+
+# Validate on lfw dataset
+
+```bash
+python src/validate_on_lfw.py --model_dir model --lfw_pairs data/pairs.txt --lfw_dir data/lfw\:dlib-affine-sz\:96/
+```
