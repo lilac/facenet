@@ -8,7 +8,7 @@ import facenet
 import os
 import time
 
-# from tensorflow.python.platform import gfile
+from tensorflow.python.platform import gfile
 
 tf.app.flags.DEFINE_string('model_dir', '~/models/facenet/20160501-133835',
                            """Directory containing the graph definition and checkpoint files.""")
@@ -35,8 +35,7 @@ tf.app.flags.DEFINE_integer('seed', 666,
 FLAGS = tf.app.flags.FLAGS
 
 def main():
-    
-    
+
     pairs = read_pairs(os.path.expanduser(FLAGS.lfw_pairs))
     paths, actual_issame = get_paths(os.path.expanduser(FLAGS.lfw_dir), pairs)
     
@@ -44,42 +43,44 @@ def main():
 
         # Creates graph from saved GraphDef
         #  NOTE: This does not work at the moment. Needs tensorflow to store variables in the graph_def.
-#         graphdef_filename = os.path.join(os.path.expanduser(FLAGS.model_dir), 'graphdef', 'graph_def.pb')
-#         with gfile.FastGFile(graphdef_filename, 'rb') as f:
-#             graph_def = tf.GraphDef()
-#             graph_def.ParseFromString(f.read())
-#             images_placeholder, phase_train_placeholder, embeddings = tf.import_graph_def(graph_def, return_elements = ['input', 'phase_train', 'embeddings'], name='')
+        graphdef_filename = os.path.join(os.path.expanduser(FLAGS.model_dir), 'facenet_batch_60.pb')
+        f = gfile.FastGFile(graphdef_filename, 'rb')
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+        images_placeholder, embeddings = tf.import_graph_def(graph_def, return_elements=['input', 'embeddings'], name='')
 
         # Placeholder for input images
-        images_placeholder = tf.placeholder(tf.float32, shape=(FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3), name='input')
-          
-        # Placeholder for phase_train
-        phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
-          
-        # Build the inference graph
-        embeddings = facenet.inference_nn4_max_pool_96(images_placeholder, phase_train=phase_train_placeholder)
+        # images_placeholder = tf.placeholder(tf.float32, shape=(FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3), name='input')
+        #
+        # # Placeholder for phase_train
+        # phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
+        #
+        # # Build the inference graph
+        # embeddings = facenet.inference_nn4_max_pool_96(images_placeholder, phase_train=phase_train_placeholder)
           
         # Create a saver for restoring variable averages
-        ema = tf.train.ExponentialMovingAverage(1.0)
-        saver = tf.train.Saver(ema.variables_to_restore())
+        # ema = tf.train.ExponentialMovingAverage(1.0)
+        # saver = tf.train.Saver(ema.variables_to_restore())
         
         with tf.Session() as sess:
       
-            ckpt = tf.train.get_checkpoint_state(os.path.expanduser(FLAGS.model_dir))
-            if ckpt and ckpt.model_checkpoint_path:
-                saver.restore(sess, ckpt.model_checkpoint_path)
-            else:
-                raise ValueError('Checkpoint not found')
+            # ckpt = tf.train.get_checkpoint_state(os.path.expanduser(FLAGS.model_dir))
+            # if ckpt and ckpt.model_checkpoint_path:
+            #     saver.restore(sess, ckpt.model_checkpoint_path)
+            # else:
+            #     raise ValueError('Checkpoint not found')
     
             nrof_images = len(paths)
             nrof_batches = int(nrof_images / FLAGS.batch_size)  # Run forward pass on the remainder in the last batch
             emb_list = []
+            input_tensor = sess.graph.get_tensor_by_name('input:0')
+            output_tensor = sess.graph.get_tensor_by_name('embeddings:0')
             for i in range(nrof_batches):
                 start_time = time.time()
                 paths_batch = paths[i*FLAGS.batch_size:(i+1)*FLAGS.batch_size]
                 images = facenet.load_data(paths_batch)
-                feed_dict = { images_placeholder: images, phase_train_placeholder: False }
-                emb_list += sess.run([embeddings], feed_dict=feed_dict)
+                feed_dict = { input_tensor: images }
+                emb_list += sess.run([output_tensor], feed_dict=feed_dict)
                 duration = time.time() - start_time
                 print('Calculated embeddings for batch %d of %d: time=%.3f seconds' % (i+1,nrof_batches, duration))
             emb_array = np.vstack(emb_list)  # Stack the embeddings to a nrof_examples_per_epoch x 128 matrix
