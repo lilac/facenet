@@ -35,5 +35,5 @@ python src/graph_def.py --model_dir model/20160306-500000 --output_dir /tmp --ou
 # Validate on lfw dataset
 
 ```bash
-python src/validate_on_lfw.py --model_dir model --lfw_pairs data/pairs.txt --lfw_dir data/lfw\:dlib-affine-sz\:96/
+python src/validate_on_lfw.py --model_dir model --lfw_pairs data/pairs.txt --lfw_dir data/lfw-dlib-affine-sz-96/
 ```
